@@ -2246,18 +2246,20 @@ ${langInstr2}
               </div>
             </div>
 
-            {/* Category — Radio Menu Style */}
+            {/* Category */}
             <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>카테고리</label>
-              <div className="radio-menu">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {CATEGORIES.map(c => (
-                  <button
-                    key={c.id}
-                    className={`radio-link ${category===c.id?"active":""}`}
-                    onClick={()=>setCategory(c.id)}
-                  >
-                    <span className="link-icon">{c.icon}</span>
-                    <span className="link-title">{c.label}</span>
+                  <button key={c.id} onClick={()=>setCategory(c.id)}
+                    style={{
+                      padding: "8px 14px", borderRadius: 10, border: category===c.id ? "2px solid #4f46e5" : "2px solid #e5e7eb",
+                      background: category===c.id ? "#eef2ff" : "#fff", cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+                      fontSize: 12, fontWeight: category===c.id ? 700 : 500, color: category===c.id ? "#4f46e5" : "#666",
+                    }}>
+                    <span style={{ fontSize: 15 }}>{c.icon}</span>
+                    <span>{c.label}</span>
                   </button>
                 ))}
               </div>
@@ -2268,17 +2270,17 @@ ${langInstr2}
               {/* Template Style — Radio Menu */}
               <div style={{ flex: "1 1 280px", background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 12 }}>템플릿 스타일</label>
-                <div className="radio-menu">
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {STYLES.map(s => (
-                    <button
-                      key={s.id}
-                      className={`radio-link ${styleId===s.id?"active":""}`}
-                      onClick={()=>setStyleId(s.id)}
-                    >
-                      <span className="link-icon">
-                        <span style={{ display: "inline-block", width: 18, height: 22.5, borderRadius: 4, background: s.gradient }} />
-                      </span>
-                      <span className="link-title">{s.label}</span>
+                    <button key={s.id} onClick={()=>setStyleId(s.id)}
+                      style={{
+                        padding: "8px 14px", borderRadius: 10, border: styleId===s.id ? "2px solid #4f46e5" : "2px solid #e5e7eb",
+                        background: styleId===s.id ? "#eef2ff" : "#fff", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s",
+                        fontSize: 12, fontWeight: styleId===s.id ? 700 : 500, color: styleId===s.id ? "#4f46e5" : "#666",
+                      }}>
+                      <span style={{ display: "inline-block", width: 14, height: 17, borderRadius: 3, background: s.gradient }} />
+                      <span>{s.label}</span>
                     </button>
                   ))}
                 </div>
