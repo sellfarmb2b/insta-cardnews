@@ -358,6 +358,8 @@ const GLOBAL_CSS = `
   .radio-link { width: auto !important; min-width: 52px; height: 40px; }
   .radio-link .link-icon { position: relative; left: auto; }
   .radio-link .link-title { display: none !important; }
+  .radio-link.active { width: auto !important; padding: 0 12px; }
+  .radio-link.active .link-title { display: inline !important; opacity: 1 !important; transform: none !important; text-indent: 6px; font-size: 11px; }
   .radio-link:hover { width: auto !important; }
 
   .modal-arrow { width: 36px; height: 36px; font-size: 18px; }
