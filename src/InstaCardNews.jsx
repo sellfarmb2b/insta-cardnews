@@ -355,12 +355,20 @@ const GLOBAL_CSS = `
   .mobile-hide { display: none !important; }
 
   .radio-menu { flex-wrap: wrap; gap: 4px; justify-content: flex-start; }
-  .radio-link { width: auto !important; min-width: 52px; height: 40px; }
-  .radio-link .link-icon { position: relative; left: auto; }
+  .radio-link { width: auto !important; min-width: 44px; height: 38px; display: inline-flex !important; align-items: center !important; gap: 0 !important; padding: 0 10px !important; }
+  .radio-link .link-icon { position: static !important; left: auto !important; flex-shrink: 0; }
   .radio-link .link-title { display: none !important; }
-  .radio-link.active { width: auto !important; padding: 0 12px; }
-  .radio-link.active .link-title { display: inline !important; opacity: 1 !important; transform: none !important; text-indent: 6px; font-size: 11px; }
+  .radio-link.active .link-title {
+    display: inline-block !important;
+    opacity: 1 !important;
+    transform: none !important;
+    text-indent: 0 !important;
+    margin-left: 4px;
+    font-size: 11px;
+    width: auto !important;
+  }
   .radio-link:hover { width: auto !important; }
+  .radio-link:hover .link-title { display: none !important; }
 
   .modal-arrow { width: 36px; height: 36px; font-size: 18px; }
   .modal-arrow-left { left: 8px; }
