@@ -542,12 +542,14 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
               </>
             )}
           </div>
-          {/* Page dots */}
-          <div style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2 }}>
-            {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
-              <div key={i} style={{ width: i === card.cardNumber - 1 ? 8 : 3, height: 3, borderRadius: 1.5, background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.25)", transition: "all 0.2s" }} />
-            ))}
-          </div>
+          {/* Page dots — only on content cards */}
+          {card.type === "content" && (
+            <div style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2 }}>
+              {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
+                <div key={i} style={{ width: i === card.cardNumber - 1 ? 8 : 3, height: 3, borderRadius: 1.5, background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.25)", transition: "all 0.2s" }} />
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
           {card.type === "cover" ? "표지" : card.type === "closing" ? "마무리" : `${card.cardNumber}p`}
@@ -586,11 +588,13 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
           </div>
           {/* Watermark */}
           <div style={{ position: "absolute", bottom: 8, right: 10, fontSize: 7, color: "rgba(255,255,255,0.3)", fontStyle: "italic", zIndex: 1 }}>moond</div>
-          <div style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2 }}>
-            {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
-              <div key={i} style={{ width: i === card.cardNumber - 1 ? 8 : 3, height: 3, borderRadius: 1.5, background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.2)", transition: "all 0.2s" }} />
-            ))}
-          </div>
+          {card.type === "content" && (
+            <div style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2 }}>
+              {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
+                <div key={i} style={{ width: i === card.cardNumber - 1 ? 8 : 3, height: 3, borderRadius: 1.5, background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.2)", transition: "all 0.2s" }} />
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
           {card.type === "cover" ? "표지" : card.type === "closing" ? "마무리" : `${card.cardNumber}p`}
@@ -642,11 +646,13 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
               </>
             )}
           </div>
-          <div style={{ position: "absolute", bottom: 5, right: 10, display: "flex", gap: 2 }}>
-            {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
-              <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.3)", transition: "all 0.2s" }} />
-            ))}
-          </div>
+          {card.type === "content" && (
+            <div style={{ position: "absolute", bottom: 5, right: 10, display: "flex", gap: 2 }}>
+              {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
+                <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: i === card.cardNumber - 1 ? "#fff" : "rgba(255,255,255,0.3)", transition: "all 0.2s" }} />
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
           {card.type === "cover" ? "표지" : card.type === "closing" ? "마무리" : `${card.cardNumber}p`}
@@ -698,15 +704,17 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
             )}
           </div>
         )}
-        <div style={{ position: "absolute", bottom: 7, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2.5 }}>
-          {Array.from({ length: card.totalCards }, (_, i) => (
-            <div key={i} style={{
-              width: i === card.cardNumber - 1 ? 10 : 3.5, height: 3.5, borderRadius: 2,
-              background: isEdge ? (i === card.cardNumber - 1 ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.18)") : (i === card.cardNumber - 1 ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.08)"),
-              transition: "all 0.2s",
-            }} />
-          ))}
-        </div>
+        {card.type === "content" && (
+          <div style={{ position: "absolute", bottom: 7, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2.5 }}>
+            {Array.from({ length: card.totalCards }, (_, i) => (
+              <div key={i} style={{
+                width: i === card.cardNumber - 1 ? 10 : 3.5, height: 3.5, borderRadius: 2,
+                background: isEdge ? (i === card.cardNumber - 1 ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.18)") : (i === card.cardNumber - 1 ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.08)"),
+                transition: "all 0.2s",
+              }} />
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
         {card.type === "cover" ? "표지" : card.type === "closing" ? "마무리" : `${card.cardNumber}p`}
@@ -2022,18 +2030,20 @@ ${langInstr2}
 
     ctx.restore();
 
-    // --- Page dots ---
-    const dotY = H - 40;
-    const totalDots = Math.min(card.totalCards || 7, 8);
-    const dotStartX = style === "poly" ? W - totalDots * 20 - 30 : (W - totalDots * 20) / 2;
-    for (let i = 0; i < totalDots; i++) {
-      const isCurrent = i === card.cardNumber - 1;
-      ctx.beginPath();
-      ctx.arc(dotStartX + i * 20 + (isCurrent ? 10 : 5), dotY, isCurrent ? 8 : 4, 0, Math.PI * 2);
-      const dotActive = (isMinimal && !isEdge) ? "rgba(0,0,0,0.35)" : "#fff";
-      const dotInactive = (isMinimal && !isEdge) ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.3)";
-      ctx.fillStyle = isCurrent ? dotActive : dotInactive;
-      ctx.fill();
+    // --- Page dots (content cards only) ---
+    if (card.type === "content") {
+      const dotY = H - 40;
+      const totalDots = Math.min(card.totalCards || 7, 8);
+      const dotStartX = style === "poly" ? W - totalDots * 20 - 30 : (W - totalDots * 20) / 2;
+      for (let i = 0; i < totalDots; i++) {
+        const isCurrent = i === card.cardNumber - 1;
+        ctx.beginPath();
+        ctx.arc(dotStartX + i * 20 + (isCurrent ? 10 : 5), dotY, isCurrent ? 8 : 4, 0, Math.PI * 2);
+        const dotActive = (isMinimal && !isEdge) ? "rgba(0,0,0,0.35)" : "#fff";
+        const dotInactive = (isMinimal && !isEdge) ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.3)";
+        ctx.fillStyle = isCurrent ? dotActive : dotInactive;
+        ctx.fill();
+      }
     }
 
     return canvas;
