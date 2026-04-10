@@ -495,6 +495,8 @@ function CardBgImage({ imageUrl, mediaType }) {
 
 // —— Card Preview (4:5 = 172x215) ——
 function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnews" }) {
+  const off = card.textOffset || { x: 0, y: 0 };
+  const textStyle = { transform: `translate(${off.x}px, ${off.y}px)` };
   const idx = (card.cardNumber - 1) % PHOTO_BG.length;
   const photoBg = PHOTO_BG[idx];
   const hasImage = !!card.imageUrl;
@@ -520,7 +522,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
           {/* Bottom gradient */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)" }} />
           {/* Text */}
-          <div style={{ position: "relative", padding: "0 12px 24px", zIndex: 1 }}>
+          <div style={{ position: "relative", padding: "0 12px 24px", zIndex: 1, ...textStyle }}>
             {card.type === "cover" && (
               <>
                 <div style={{ fontSize: 14, fontWeight: 900, color: "#fff", lineHeight: 1.3, letterSpacing: -0.5, wordBreak: "keep-all" }}>{card.headline}</div>
@@ -568,7 +570,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
             <div style={{ position: "absolute", top: 10, right: 10, fontSize: 12, color: "rgba(255,255,255,0.7)" }}>★</div>
           )}
           {/* Text - left aligned, casual */}
-          <div style={{ position: "relative", padding: "0 14px 22px", zIndex: 1 }}>
+          <div style={{ position: "relative", padding: "0 14px 22px", zIndex: 1, ...textStyle }}>
             {card.type === "cover" && (
               <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1.25, letterSpacing: -0.5, wordBreak: "keep-all" }}>{card.headline}</div>
             )}
@@ -614,7 +616,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
           {/* Heavy gradient */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "65%", background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, transparent 100%)" }} />
           {/* Badge + Giant text */}
-          <div style={{ position: "relative", padding: "0 12px 22px", zIndex: 1 }}>
+          <div style={{ position: "relative", padding: "0 12px 22px", zIndex: 1, ...textStyle }}>
             {card.type !== "closing" && (
               <div style={{
                 display: "inline-block", fontSize: 7, fontWeight: 800, padding: "2px 7px", borderRadius: 3, marginBottom: 6,
@@ -664,7 +666,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
         {hasImage && isEdge && <CardBgImage imageUrl={card.imageUrl} mediaType={card.mediaType} />}
         {hasImage && isEdge && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 0 }} />}
         {card.type === "cover" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", zIndex: 1, ...textStyle }}>
             <div style={{ fontSize: 7, fontWeight: 600, letterSpacing: 3, opacity: 0.35, color: minTxt }}>CARD NEWS</div>
             <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.25, color: minTxt, letterSpacing: -0.3 }}>{card.headline}</div>
             {card.subtext && <div style={{ fontSize: 8.5, color: minSub, lineHeight: 1.4 }}>{card.subtext}</div>}
@@ -672,7 +674,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
           </div>
         )}
         {card.type === "content" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", width: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", width: "100%", ...textStyle }}>
             <div style={{ position: "absolute", top: -8, right: 0, fontSize: 44, fontWeight: 900, opacity: 0.05, color: minTxt, lineHeight: 1 }}>
               {String(card.cardNumber).padStart(2, "0")}
             </div>
@@ -684,7 +686,7 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
           </div>
         )}
         {card.type === "closing" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", position: "relative", zIndex: 1, ...textStyle }}>
             <div style={{ fontSize: 18 }}>👋</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: minTxt }}>{card.cta || "더 알아보기"}</div>
             {card.hashtags && (
@@ -1435,6 +1437,11 @@ export default function InstaCardNews() {
     setCards(prev => prev.map((c, i) => i === selectedCard ? { ...c, [key]: value } : c));
   };
 
+  // Update textOffset for a card by index (used by modal drag)
+  const updateTextOffset = (idx, offset) => {
+    setCards(prev => prev.map((c, i) => i === idx ? { ...c, textOffset: offset } : c));
+  };
+
   // 적용: just close (changes already live)
   const confirmEdit = () => {
     setSelectedCard(null);
@@ -1960,9 +1967,13 @@ ${langInstr2}
       }
     }
 
-    // --- Text content ---
+    // --- Text content (with drag offset) ---
     const centerY = isMinimal && !isEdge;
     const px = isMinimal ? 100 : 75;
+    const off = card.textOffset || { x: 0, y: 0 };
+    const SCALE_RATIO = W / 172; // preview is 172px wide, canvas is 1080
+    ctx.save();
+    ctx.translate(off.x * SCALE_RATIO, off.y * SCALE_RATIO);
 
     if (card.type === "cover") {
       const headY = isMinimal ? H / 2 - 80 : H - 380;
@@ -2008,6 +2019,8 @@ ${langInstr2}
       }
       if (isMinimal) ctx.textAlign = "left";
     }
+
+    ctx.restore();
 
     // --- Page dots ---
     const dotY = H - 40;
@@ -2646,17 +2659,59 @@ ${langInstr2}
       </div>
 
       {/* ════════ DESKTOP CARD VIEWER ════════ */}
-      {viewingCard !== null && cards[viewingCard] && !isMobile && (
+      {viewingCard !== null && cards[viewingCard] && !isMobile && (() => {
+        const SCALE = 2.1;
+        const currentOffset = cards[viewingCard].textOffset || { x: 0, y: 0 };
+        const handlePointerDown = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const initOffset = { ...currentOffset };
+          const onMove = (ev) => {
+            const dx = (ev.clientX - startX) / SCALE;
+            const dy = (ev.clientY - startY) / SCALE;
+            updateTextOffset(viewingCard, { x: initOffset.x + dx, y: initOffset.y + dy });
+          };
+          const onUp = () => {
+            window.removeEventListener("pointermove", onMove);
+            window.removeEventListener("pointerup", onUp);
+          };
+          window.addEventListener("pointermove", onMove);
+          window.addEventListener("pointerup", onUp);
+        };
+        const resetOffset = () => updateTextOffset(viewingCard, { x: 0, y: 0 });
+        return (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setViewingCard(null); }}>
           <button className="modal-close" onClick={() => setViewingCard(null)}>✕</button>
           {viewingCard > 0 && (
             <button className="modal-arrow modal-arrow-left" onClick={(e) => { e.stopPropagation(); setViewingCard(v => v - 1); }}>‹</button>
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <div className="modal-card-wrapper" style={{ transform: "scale(2.1)", transformOrigin: "center center" }}>
-              <CardPreview card={cards[viewingCard]} styleId={styleId} isSelected={false} watermark={watermark} onClick={() => {}} />
+            <div style={{ position: "relative", width: 172 * SCALE, height: 215 * SCALE }}>
+              <div className="modal-card-wrapper" style={{ transform: `scale(${SCALE})`, transformOrigin: "top left", width: 172, height: 215 }}>
+                <CardPreview card={cards[viewingCard]} styleId={styleId} isSelected={false} watermark={watermark} onClick={() => {}} />
+              </div>
+              {/* Drag overlay for text positioning */}
+              <div
+                onPointerDown={handlePointerDown}
+                style={{
+                  position: "absolute", inset: 0, cursor: "grab",
+                  border: "2px dashed rgba(79,70,229,0.4)", borderRadius: 14,
+                  pointerEvents: "auto",
+                }}
+                title="드래그하여 텍스트 위치 이동"
+              />
+              {/* Drag hint badge */}
+              <div style={{
+                position: "absolute", top: -32, left: "50%", transform: "translateX(-50%)",
+                background: "rgba(79,70,229,0.9)", color: "#fff", fontSize: 11, fontWeight: 600,
+                padding: "4px 10px", borderRadius: 6, whiteSpace: "nowrap",
+              }}>
+                ✋ 드래그하여 텍스트 위치 조정
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 140 }}>
+            <div style={{ display: "flex", gap: 6, marginTop: 24 }}>
               {cards.map((_, i) => (
                 <button key={i} onClick={(e) => { e.stopPropagation(); setViewingCard(i); }}
                   style={{ width: i === viewingCard ? 20 : 8, height: 8, borderRadius: 4, background: i === viewingCard ? "#fff" : "rgba(255,255,255,0.3)", border: "none", cursor: "pointer", padding: 0, transition: "all 0.2s" }} />
@@ -2664,6 +2719,10 @@ ${langInstr2}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
               <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600 }}>{viewingCard + 1} / {cards.length}</span>
+              <button className="modal-edit-btn" onClick={(e) => { e.stopPropagation(); resetOffset(); }}
+                style={{ background: "rgba(255,255,255,0.08)" }}>
+                위치 초기화
+              </button>
               <button className="modal-edit-btn" onClick={(e) => { e.stopPropagation(); openEditor(viewingCard); setViewingCard(null); }}>✏️ 편집하기</button>
               <button className="modal-edit-btn" onClick={(e) => { e.stopPropagation(); downloadPNG(viewingCard); }}
                 style={{ background: "rgba(16,185,129,0.2)", borderColor: "rgba(16,185,129,0.3)" }}>
@@ -2675,7 +2734,8 @@ ${langInstr2}
             <button className="modal-arrow modal-arrow-right" onClick={(e) => { e.stopPropagation(); setViewingCard(v => v + 1); }}>›</button>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ════════ MOBILE FULL-SCREEN VIEWER (swipe) ════════ */}
       {viewingCard !== null && isMobile && (
