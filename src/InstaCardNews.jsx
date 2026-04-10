@@ -494,7 +494,7 @@ function CardBgImage({ imageUrl, mediaType }) {
 }
 
 // —— Card Preview (4:5 = 172x215) ——
-function CardPreview({ card, styleId, isSelected, onClick }) {
+function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnews" }) {
   const idx = (card.cardNumber - 1) % PHOTO_BG.length;
   const photoBg = PHOTO_BG[idx];
   const hasImage = !!card.imageUrl;
@@ -516,7 +516,7 @@ function CardPreview({ card, styleId, isSelected, onClick }) {
           {/* Simulated photo noise */}
           {!hasImage && <div style={{ position: "absolute", inset: 0, opacity: 0.08, background: "repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.03) 2px,rgba(255,255,255,0.03) 4px)" }} />}
           {/* Watermark */}
-          <div style={{ position: "absolute", top: 10, left: 10, fontSize: 7, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>@cardnews</div>
+          {watermark && <div style={{ position: "absolute", top: 10, left: 10, fontSize: 7, color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>{watermark}</div>}
           {/* Bottom gradient */}
           <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%)" }} />
           {/* Text */}
@@ -540,13 +540,6 @@ function CardPreview({ card, styleId, isSelected, onClick }) {
               </>
             )}
           </div>
-          {/* Engagement icons */}
-          {card.type === "cover" && (
-            <div style={{ position: "absolute", bottom: 10, right: 10, display: "flex", gap: 6, zIndex: 1 }}>
-              <span style={{ fontSize: 7, color: "rgba(255,255,255,0.5)" }}>♥ 243</span>
-              <span style={{ fontSize: 7, color: "rgba(255,255,255,0.5)" }}>💬 49</span>
-            </div>
-          )}
           {/* Page dots */}
           <div style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 2 }}>
             {Array.from({ length: Math.min(card.totalCards, 8) }, (_, i) => (
@@ -1326,6 +1319,7 @@ export default function InstaCardNews() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [editBackup, setEditBackup] = useState(null);
   const [autoHashtag, setAutoHashtag] = useState(true);
+  const [watermark, setWatermark] = useState(() => localStorage.getItem("cardnews_watermark") || "@cardnews");
   const [viewingCard, setViewingCard] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem("cardnews_api_key") || "");
@@ -1875,7 +1869,8 @@ ${langInstr2}
   });
 
   // Draw card on Canvas with style support
-  const drawCardToCanvas = async (card, style) => {
+  const drawCardToCanvas = async (card, style, customWatermark) => {
+    const wm = customWatermark !== undefined ? customWatermark : watermark;
     const W = 1080, H = 1350;
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
@@ -1933,8 +1928,10 @@ ${langInstr2}
     ctx.textBaseline = "top";
 
     if (style === "varo") {
-      ctx.font = "600 40px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.fillText("@cardnews", 60, 55);
+      if (wm) {
+        ctx.font = "600 40px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.fillText(wm, 60, 55);
+      }
     } else if (style === "moond") {
       ctx.font = "italic 44px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.25)";
       ctx.fillText("moond", W - 200, H - 60);
@@ -2497,7 +2494,7 @@ ${langInstr2}
               </div>
             )}
 
-            {/* Style switcher */}
+            {/* Style switcher + Watermark */}
             <div style={{ background: "#fff", borderRadius: 16, padding: "14px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#999" }}>스타일</span>
               <div style={{ display: "flex", gap: 6 }}>
@@ -2512,6 +2509,15 @@ ${langInstr2}
                   </button>
                 ))}
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flex: "1 1 200px" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#999", whiteSpace: "nowrap" }}>워터마크</span>
+                <input
+                  value={watermark}
+                  onChange={e => { setWatermark(e.target.value); localStorage.setItem("cardnews_watermark", e.target.value); }}
+                  placeholder="@yourname (비워두면 숨김)"
+                  style={{ flex: 1, minWidth: 0, padding: "6px 10px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: 12, outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
             </div>
 
             {/* Card carousel */}
@@ -2523,7 +2529,7 @@ ${langInstr2}
               <div className="card-scroll" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 12, scrollSnapType: "x mandatory" }}>
                 {cards.map((card,i) => (
                   <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                    <CardPreview card={card} styleId={styleId} isSelected={selectedCard===i}
+                    <CardPreview card={card} styleId={styleId} isSelected={selectedCard===i} watermark={watermark}
                       onClick={()=>setViewingCard(i)}
                     />
                     <button
@@ -2648,7 +2654,7 @@ ${langInstr2}
           )}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div className="modal-card-wrapper" style={{ transform: "scale(2.1)", transformOrigin: "center center" }}>
-              <CardPreview card={cards[viewingCard]} styleId={styleId} isSelected={false} onClick={() => {}} />
+              <CardPreview card={cards[viewingCard]} styleId={styleId} isSelected={false} watermark={watermark} onClick={() => {}} />
             </div>
             <div style={{ display: "flex", gap: 6, marginTop: 140 }}>
               {cards.map((_, i) => (
@@ -2683,7 +2689,7 @@ ${langInstr2}
             {cards.map((card, i) => (
               <div key={i} className="mobile-viewer-slide">
                 <div style={{ transform: "scale(1.55)", transformOrigin: "center center" }}>
-                  <CardPreview card={card} styleId={styleId} isSelected={false} onClick={() => {}} />
+                  <CardPreview card={card} styleId={styleId} isSelected={false} watermark={watermark} onClick={() => {}} />
                 </div>
               </div>
             ))}
