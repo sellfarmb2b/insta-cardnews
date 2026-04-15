@@ -1046,7 +1046,7 @@ ${cardCount}장의 카드뉴스를 작성하세요.
         cardsPromise = fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-          body: JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
         }).then(async r => {
           if (!r.ok) throw new Error(`Claude API ${r.status}`);
           const d = await r.json();
@@ -2003,7 +2003,7 @@ ${langInstr}
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6-20250514",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -2100,7 +2100,7 @@ ${langInstr2}
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6-20250514",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 3000,
         messages: [{ role: "user", content: prompt }],
       }),
