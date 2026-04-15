@@ -906,72 +906,41 @@ async function fetchBananaxFull() {
   return _bananaxFullCache;
 }
 
-// Extract full multi-line YAML section by header name
-function extractYamlSection(yaml, sectionName) {
-  const regex = new RegExp(`###?\\s*${sectionName}[^\\n]*\\n`, "i");
-  const match = yaml.match(regex);
-  if (!match) return "";
-  const startIdx = match.index + match[0].length;
-  const nextSection = yaml.slice(startIdx).search(/^###?\s/m);
-  const block = nextSection === -1 ? yaml.slice(startIdx) : yaml.slice(startIdx, startIdx + nextSection);
-  return block.split("\n").map(l => l.trim()).filter(l => l.length > 0 && l !== "-").join("\n");
-}
-
 function buildDallePrompt(style, fullEntry, persona, desire) {
   const topic = [persona, desire].filter(Boolean).join(" - ") || "Card News";
 
   if (fullEntry && fullEntry.yaml) {
-    const y = fullEntry.yaml;
-    const colorSection = extractYamlSection(y, "Color Composition");
-    const illuSection = extractYamlSection(y, "Illustration Style");
-    const toneSection = extractYamlSection(y, "Tone.*Voice");
-    const dataSection = extractYamlSection(y, "Data Visualization");
+    // Use the BananaX YAML prompt AS-IS (it's already a complete design spec)
+    return `Create an infographic-style background image for an Instagram card news post.
+The image must be portrait orientation (4:5 ratio, 1080x1350px).
+Topic/Subject of the card: "${topic}"
 
-    return `Create an infographic-style background image for an Instagram card news post (portrait, 4:5 ratio, 1080x1350px).
+Use the following design specification exactly as described:
 
-Topic/Subject: "${topic}"
-Style Name: ${style.name}
+${fullEntry.yaml}
 
-=== COLOR PALETTE ===
-${colorSection || "Use colors appropriate for: " + style.name}
-
-=== ILLUSTRATION STYLE ===
-${illuSection || style.name}
-
-=== TONE & MOOD ===
-${toneSection || "Professional, clean, modern"}
-
-${dataSection ? `=== DATA VISUALIZATION STYLE ===\n${dataSection}\n` : ""}=== CRITICAL REQUIREMENTS ===
-- This is a BACKGROUND image only. Absolutely NO text, letters, numbers, words, or characters of any language.
+=== ADDITIONAL REQUIREMENTS FOR THIS IMAGE ===
+- This is a BACKGROUND image only. Absolutely NO text, letters, numbers, words, or characters of any language in the image.
 - The image should work as a backdrop with text overlaid on top.
-- Keep the bottom 40% of the image relatively dark or simple (text will be placed here).
+- Keep the bottom 40% relatively dark or simple (text will be placed here).
 - Keep the top 20% relatively clean (watermark area).
-- The middle area can have the main visual elements.
-- Professional quality suitable for Instagram carousel posts.
-- Follow the color palette and illustration style specified above precisely.`;
+- Follow the color palette, illustration style, and tone described above precisely.`;
   }
 
-  // Lite entry (251 styles): use name components
-  const parts = (style.name || "").split("/").map(s => s.trim());
-  const artStyle = parts[0] || "Infographic";
-  const context = parts[1] || "Professional";
-  const aesthetic = parts[2] || "Modern";
+  // Lite entry (251 styles without full YAML): use name as style reference
+  return `Create an infographic-style background image for an Instagram card news post.
+The image must be portrait orientation (4:5 ratio, 1080x1350px).
+Topic/Subject of the card: "${topic}"
 
-  return `Create an infographic-style background image for an Instagram card news post (portrait, 4:5 ratio, 1080x1350px).
+Visual Style: ${style.name}
 
-Topic/Subject: "${topic}"
+Apply the "${style.name}" design aesthetic throughout the image.
 
-Art Style: ${artStyle}
-Context/Audience: ${context}
-Aesthetic Direction: ${aesthetic}
-Full Style Reference: ${style.name}
-
-=== CRITICAL REQUIREMENTS ===
+=== REQUIREMENTS ===
 - This is a BACKGROUND image only. Absolutely NO text, letters, numbers, words, or characters of any language.
 - The image should work as a backdrop with text overlaid on top.
 - Keep the bottom 40% relatively dark or simple for text overlay.
-- Keep the top 20% clean for watermark.
-- Apply the "${artStyle}" art style with "${aesthetic}" aesthetic consistently.
+- Keep the top 20% clean for watermark area.
 - Professional quality suitable for Instagram carousel posts.`;
 }
 
