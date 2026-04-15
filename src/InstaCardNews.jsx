@@ -1600,8 +1600,11 @@ ${langInstr}
 - 각 앵글의 특성을 잘 반영
 - 페르소나와 욕구, 인지단계에 맞춰 작성`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -1609,11 +1612,12 @@ ${langInstr}
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6-20250514",
         max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       }),
     });
+    clearTimeout(timeout);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -1693,8 +1697,11 @@ ${langInstr2}
 - 총 ${count}장의 카드를 생성
 - 평가는 정직하게 — 7점 미만이면 재생성됩니다`;
 
+    const controller2 = new AbortController();
+    const timeout2 = setTimeout(() => controller2.abort(), 30000);
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: controller2.signal,
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
@@ -1702,11 +1709,12 @@ ${langInstr2}
         "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6-20250514",
         max_tokens: 3000,
         messages: [{ role: "user", content: prompt }],
       }),
     });
+    clearTimeout(timeout2);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
