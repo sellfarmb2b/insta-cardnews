@@ -784,21 +784,23 @@ function ScoreBadge({ score, size = "normal" }) {
 }
 
 // —— Settings Panel ——
-function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onUnsplashKeyChange, pexelsKey, onPexelsKeyChange, serperKey, onSerperKeyChange, openaiKey, onOpenaiKeyChange }) {
+function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onUnsplashKeyChange, pexelsKey, onPexelsKeyChange, serperKey, onSerperKeyChange, openaiKey, onOpenaiKeyChange, freepikKey, onFreepikKeyChange }) {
   const [tempKey, setTempKey] = useState(apiKey);
   const [tempUnsplash, setTempUnsplash] = useState(unsplashKey);
   const [tempPexels, setTempPexels] = useState(pexelsKey);
   const [tempSerper, setTempSerper] = useState(serperKey);
   const [tempOpenai, setTempOpenai] = useState(openaiKey);
+  const [tempFreepik, setTempFreepik] = useState(freepikKey);
   const [showKey, setShowKey] = useState(false);
   const [showUnsplash, setShowUnsplash] = useState(false);
   const [showPexels, setShowPexels] = useState(false);
   const [showSerper, setShowSerper] = useState(false);
   const [showOpenai, setShowOpenai] = useState(false);
+  const [showFreepik, setShowFreepik] = useState(false);
 
   useEffect(() => {
-    if (open) { setTempKey(apiKey); setTempUnsplash(unsplashKey); setTempPexels(pexelsKey); setTempSerper(serperKey); setTempOpenai(openaiKey); }
-  }, [open, apiKey, unsplashKey, pexelsKey, serperKey, openaiKey]);
+    if (open) { setTempKey(apiKey); setTempUnsplash(unsplashKey); setTempPexels(pexelsKey); setTempSerper(serperKey); setTempOpenai(openaiKey); setTempFreepik(freepikKey); }
+  }, [open, apiKey, unsplashKey, pexelsKey, serperKey, openaiKey, freepikKey]);
 
   if (!open) return null;
 
@@ -808,6 +810,7 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
     onPexelsKeyChange(tempPexels.trim());
     onSerperKeyChange(tempSerper.trim());
     onOpenaiKeyChange(tempOpenai.trim());
+    onFreepikKeyChange(tempFreepik.trim());
     onClose();
   };
 
@@ -830,7 +833,7 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
     </div>
   );
 
-  const partial = tempKey.trim() || tempUnsplash.trim() || tempPexels.trim() || tempSerper.trim() || tempOpenai.trim();
+  const partial = tempKey.trim() || tempUnsplash.trim() || tempPexels.trim() || tempSerper.trim() || tempOpenai.trim() || tempFreepik.trim();
 
   const statusDot = (ok) => ({ width: 6, height: 6, borderRadius: "50%", background: ok ? "#10b981" : "#d1d5db", flexShrink: 0 });
   const statusRow = (label, ok) => (
@@ -858,6 +861,7 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
         <div style={{ height: 1, background: "#f0f0f0", margin: "16px 0" }} />
         <div style={{ fontSize: 11, fontWeight: 700, color: "#999", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>AI 이미지 생성</div>
         {inputRow("OpenAI API Key (DALL-E)", tempOpenai, setTempOpenai, "sk-...", showOpenai, () => setShowOpenai(!showOpenai), "platform.openai.com 에서 발급 — DALL-E 3 이미지 생성")}
+        {inputRow("Freepik API Key (Mystic)", tempFreepik, setTempFreepik, "fpk-...", showFreepik, () => setShowFreepik(!showFreepik), "freepik.com/api 에서 발급 — Mystic AI 이미지 생성 & 스톡 검색")}
 
         <div style={{ height: 1, background: "#f0f0f0", margin: "16px 0" }} />
         <div style={{ fontSize: 11, fontWeight: 700, color: "#999", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>이미지 검색</div>
@@ -871,6 +875,7 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", padding: "12px 14px", borderRadius: 10, background: "#f9fafb", marginBottom: 16 }}>
           {statusRow("Anthropic", tempKey.trim())}
           {statusRow("OpenAI", tempOpenai.trim())}
+          {statusRow("Freepik", tempFreepik.trim())}
           {statusRow("Unsplash", tempUnsplash.trim())}
           {statusRow("Pexels", tempPexels.trim())}
           {statusRow("Google 이미지", tempSerper.trim())}
@@ -878,7 +883,7 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           {partial && (
-            <button className="btn-3d" onClick={() => { setTempKey(""); setTempUnsplash(""); setTempPexels(""); setTempSerper(""); setTempOpenai(""); }} style={{ fontSize: "0.75rem", color: "#ef4444" }}>전체 삭제</button>
+            <button className="btn-3d" onClick={() => { setTempKey(""); setTempUnsplash(""); setTempPexels(""); setTempSerper(""); setTempOpenai(""); setTempFreepik(""); }} style={{ fontSize: "0.75rem", color: "#ef4444" }}>전체 삭제</button>
           )}
           <button className="btn-3d" onClick={onClose} style={{ fontSize: "0.75rem" }}>취소</button>
           <button className="btn-3d btn-3d-primary" onClick={handleSave} style={{ fontSize: "0.75rem" }}>저장</button>
@@ -944,7 +949,7 @@ Apply the "${style.name}" design aesthetic throughout the image.
 - Professional quality suitable for Instagram carousel posts.`;
 }
 
-function BananaXModal({ open, onClose, openaiKey, apiKey, persona, desire, category, styleId, cardCount, autoHashtag, awareness, onComplete }) {
+function BananaXModal({ open, onClose, openaiKey, freepikKey, apiKey, persona, desire, category, styleId, cardCount, autoHashtag, awareness, onComplete }) {
   const [styles, setStyles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -1005,22 +1010,80 @@ function BananaXModal({ open, onClose, openaiKey, apiKey, persona, desire, categ
     return { bg: "#fef2f2", color: "#ef4444" };
   };
 
+  // Helper: generate a single image via Freepik Mystic (async polling)
+  const generateFreepikImage = async (prompt) => {
+    const createRes = await fetch("https://api.freepik.com/v1/ai/mystic", {
+      method: "POST",
+      headers: { "x-freepik-api-key": freepikKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, model: "realism", aspect_ratio: "traditional_3_4", resolution: "2k" }),
+    });
+    if (!createRes.ok) {
+      const errData = await createRes.json().catch(() => ({}));
+      throw new Error(errData.message || errData.detail || `Freepik HTTP ${createRes.status}`);
+    }
+    const createData = await createRes.json();
+    const taskId = createData.data?.task_id;
+    if (!taskId) throw new Error("Freepik task_id를 받지 못했습니다");
+
+    let attempts = 0;
+    const maxAttempts = 60;
+    while (attempts < maxAttempts) {
+      await new Promise(r => setTimeout(r, 2000));
+      attempts++;
+      const pollRes = await fetch(`https://api.freepik.com/v1/ai/mystic/${taskId}`, {
+        headers: { "x-freepik-api-key": freepikKey },
+      });
+      if (!pollRes.ok) {
+        const errData = await pollRes.json().catch(() => ({}));
+        throw new Error(errData.message || errData.detail || `Polling HTTP ${pollRes.status}`);
+      }
+      const pollData = await pollRes.json();
+      const status = pollData.data?.status;
+      if (status === "COMPLETED") {
+        const url = pollData.data?.generated?.[0]?.url;
+        if (!url) throw new Error("Freepik 생성 이미지 URL을 받지 못했습니다");
+        return url;
+      } else if (status === "FAILED" || status === "ERROR") {
+        throw new Error("Freepik 이미지 생성 실패");
+      }
+    }
+    throw new Error("Freepik 시간 초과");
+  };
+
+  // Helper: generate a single image via DALL-E
+  const generateDalleImage = async (prompt) => {
+    const res = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1792", quality: "standard" }),
+    });
+    if (!res.ok) throw new Error(`DALL-E HTTP ${res.status}`);
+    const data = await res.json();
+    const url = data.data?.[0]?.url;
+    if (!url) throw new Error("DALL-E 이미지 URL을 받지 못했습니다");
+    return url;
+  };
+
+  // Helper: convert URL to blob URL
+  const toBlobUrl = async (url) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return URL.createObjectURL(blob);
+    } catch { return url; }
+  };
+
   const handleGenerate = async () => {
     if (!selected || generating) return;
     setGenerating(true);
-    setGenMsg("DALL-E로 배경 이미지를 생성하고 있습니다...");
+    setGenMsg("카드 카피를 생성하고 있습니다...");
     try {
-      // Parallel: DALL-E image + Claude/demo card copy
       const topicText = [persona?.trim(), desire?.trim()].filter(Boolean).join(" - ") || "카드뉴스";
-      const dallePromise = fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "dall-e-3", prompt: dallePrompt, n: 1, size: "1024x1792", quality: "standard" }),
-      }).then(r => { if (!r.ok) throw new Error(`DALL-E HTTP ${r.status}`); return r.json(); });
 
-      let cardsPromise;
+      // Step 1: Generate card copy (Claude or demo)
+      let claudeData = null;
       if (apiKey) {
-        setGenMsg("AI가 카드 카피를 작성하고 배경 이미지를 생성하고 있습니다...");
+        setGenMsg("AI가 카드 카피를 작성하고 있습니다...");
         const catLabel = CATEGORIES.find(c => c.id === category)?.label || "뉴스/트렌드";
         const awarenessLabel = AWARENESS_LEVELS.find(a => a.id === awareness)?.label || "문제인지";
         const prompt = `당신은 인스타그램 카드뉴스 전문 카피라이터입니다.
@@ -1043,36 +1106,19 @@ ${cardCount}장의 카드뉴스를 작성하세요.
   ]
 }
 규칙: headline 15자 이내, body 40자 이내, accent 2~4자`;
-        cardsPromise = fetch("https://api.anthropic.com/v1/messages", {
+        const r = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
-        }).then(async r => {
-          if (!r.ok) throw new Error(`Claude API ${r.status}`);
-          const d = await r.json();
-          const text = d.content[0].text;
-          const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-          return JSON.parse(m[1].trim());
         });
-      } else {
-        // Demo mode
-        cardsPromise = Promise.resolve(null);
+        if (!r.ok) throw new Error(`Claude API ${r.status}`);
+        const d = await r.json();
+        const text = d.content[0].text;
+        const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+        claudeData = JSON.parse(m[1].trim());
       }
 
-      const [dalleData, claudeData] = await Promise.all([dallePromise, cardsPromise]);
-      const imgUrl = dalleData.data?.[0]?.url;
-      if (!imgUrl) throw new Error("이미지 URL을 받지 못했습니다");
-
-      // Convert DALL-E URL to blob for reliable Canvas rendering
-      setGenMsg("이미지를 처리하고 있습니다...");
-      let blobUrl = imgUrl;
-      try {
-        const imgRes = await fetch(imgUrl);
-        const blob = await imgRes.blob();
-        blobUrl = URL.createObjectURL(blob);
-      } catch { blobUrl = imgUrl; }
-
-      // Build cards
+      // Build cards data
       let analysisResult, cardsResult;
       if (claudeData) {
         analysisResult = claudeData.analysis;
@@ -1089,9 +1135,40 @@ ${cardCount}장의 카드뉴스를 작성하세요.
         ];
       }
 
+      // Step 2: Generate per-card images
+      const useFreepik = !!freepikKey;
+      const useImageGen = useFreepik || !!openaiKey;
       const pal = COLOR_PALETTES[styleId] || COLOR_PALETTES.minimal;
+      const cardBlobUrls = [];
+
+      if (useImageGen) {
+        for (let i = 0; i < cardsResult.length; i++) {
+          const card = cardsResult[i];
+          setGenMsg(`이미지 생성 중 (${i + 1}/${cardsResult.length})...`);
+          const cardHeadline = card.headline || card.cta || topicText;
+          const perCardPrompt = dallePrompt + `\n\nThis specific card's headline/content: "${cardHeadline}".\nMake the imagery subtly reflect this specific card's topic while maintaining the overall style.`;
+
+          try {
+            let imgUrl;
+            if (useFreepik) {
+              imgUrl = await generateFreepikImage(perCardPrompt);
+            } else {
+              imgUrl = await generateDalleImage(perCardPrompt);
+            }
+            const blobUrl = await toBlobUrl(imgUrl);
+            cardBlobUrls.push(blobUrl);
+          } catch (imgErr) {
+            console.error(`Card ${i + 1} image error:`, imgErr);
+            cardBlobUrls.push(null);
+          }
+        }
+      }
+
+      setGenMsg("이미지를 처리하고 있습니다...");
       const finalCards = cardsResult.map((c, i) => ({
-        ...c, totalCards: cardCount, bgColor: pal[i % pal.length], imageUrl: blobUrl, mediaType: "image",
+        ...c, totalCards: cardCount, bgColor: pal[i % pal.length],
+        imageUrl: cardBlobUrls[i] || null,
+        mediaType: cardBlobUrls[i] ? "image" : undefined,
       }));
 
       onComplete(analysisResult, finalCards);
@@ -1131,16 +1208,16 @@ ${cardCount}장의 카드뉴스를 작성하세요.
                 ); })()}
               </div>
               <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>DALL-E Prompt</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>{freepikKey ? "Freepik Mystic" : "DALL-E"} Prompt</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{dallePrompt || "로딩 중..."}</div>
               </div>
               <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", marginBottom: 8 }}>HEADLINE</div>
                 <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)" }}>{[persona, desire].filter(Boolean).join(" - ") || "미입력"}</div>
               </div>
-              {!openaiKey ? (
+              {!openaiKey && !freepikKey ? (
                 <div style={{ color: "#f59e0b", fontSize: 13, textAlign: "center", padding: "12px 20px", background: "rgba(245,158,11,0.1)", borderRadius: 10 }}>
-                  OpenAI API Key가 필요합니다. 설정에서 입력해주세요.
+                  OpenAI 또는 Freepik API Key가 필요합니다. 설정에서 입력해주세요.
                 </div>
               ) : (
                 <button onClick={handleGenerate}
@@ -1152,7 +1229,7 @@ ${cardCount}장의 카드뉴스를 작성하세요.
                   onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(99,102,241,0.5)"; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(99,102,241,0.4)"; }}
                 >
-                  이 스타일로 자동 생성
+                  이 스타일로 자동 생성 {freepikKey ? "(Freepik)" : "(DALL-E)"}
                 </button>
               )}
             </>
@@ -1220,7 +1297,7 @@ ${cardCount}장의 카드뉴스를 작성하세요.
 }
 
 // —— Media Picker Modal (with DALL-E tab) ——
-function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, openaiKey, onSelect }) {
+function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, openaiKey, freepikKey, onSelect }) {
   const [tab, setTab] = useState("file");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -1230,13 +1307,25 @@ function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, op
   const [dalleGenerating, setDalleGenerating] = useState(false);
   const [dalleResult, setDalleResult] = useState(null);
 
+  // Freepik states
+  const [freepikSubTab, setFreepikSubTab] = useState("ai"); // "ai" or "stock"
+  const [freepikPrompt, setFreepikPrompt] = useState("");
+  const [freepikModel, setFreepikModel] = useState("realism");
+  const [freepikGenerating, setFreepikGenerating] = useState(false);
+  const [freepikResult, setFreepikResult] = useState(null);
+  const [freepikGenMsg, setFreepikGenMsg] = useState("");
+  const [freepikStockQuery, setFreepikStockQuery] = useState("");
+  const [freepikStockResults, setFreepikStockResults] = useState([]);
+  const [freepikStockSearching, setFreepikStockSearching] = useState(false);
+
   // Pick default tab when reopened
   useEffect(() => {
     if (open) {
       setResults([]); setQuery(""); setError(""); setDalleResult(null); setDallePrompt("");
-      setTab(unsplashKey ? "unsplash" : pexelsKey ? "pexels" : serperKey ? "google" : openaiKey ? "dalle" : "file");
+      setFreepikResult(null); setFreepikPrompt(""); setFreepikGenMsg(""); setFreepikStockResults([]); setFreepikStockQuery("");
+      setTab(unsplashKey ? "unsplash" : pexelsKey ? "pexels" : serperKey ? "google" : freepikKey ? "freepik" : openaiKey ? "dalle" : "file");
     }
-  }, [open, unsplashKey, pexelsKey, serperKey, openaiKey]);
+  }, [open, unsplashKey, pexelsKey, serperKey, openaiKey, freepikKey]);
 
   if (!open) return null;
 
@@ -1355,10 +1444,94 @@ function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, op
     onSelect(url, mediaType);
   };
 
+  // Freepik AI generation (Mystic)
+  const generateFreepikMystic = async () => {
+    if (!freepikPrompt.trim() || !freepikKey) return;
+    setFreepikGenerating(true); setError(""); setFreepikResult(null);
+    setFreepikGenMsg("Freepik Mystic AI로 이미지를 생성하고 있습니다...");
+    try {
+      const createRes = await fetch("https://api.freepik.com/v1/ai/mystic", {
+        method: "POST",
+        headers: { "x-freepik-api-key": freepikKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: freepikPrompt, model: freepikModel, aspect_ratio: "traditional_3_4", resolution: "2k" }),
+      });
+      if (!createRes.ok) {
+        const errData = await createRes.json().catch(() => ({}));
+        throw new Error(errData.message || errData.detail || `HTTP ${createRes.status}`);
+      }
+      const createData = await createRes.json();
+      const taskId = createData.data?.task_id;
+      if (!taskId) throw new Error("task_id를 받지 못했습니다");
+
+      // Poll until COMPLETED
+      let attempts = 0;
+      const maxAttempts = 60;
+      while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 2000));
+        attempts++;
+        setFreepikGenMsg(`Freepik Mystic AI로 이미지를 생성하고 있습니다... (${attempts * 2}초)`);
+        const pollRes = await fetch(`https://api.freepik.com/v1/ai/mystic/${taskId}`, {
+          headers: { "x-freepik-api-key": freepikKey },
+        });
+        if (!pollRes.ok) {
+          const errData = await pollRes.json().catch(() => ({}));
+          throw new Error(errData.message || errData.detail || `Polling HTTP ${pollRes.status}`);
+        }
+        const pollData = await pollRes.json();
+        const status = pollData.data?.status;
+        if (status === "COMPLETED") {
+          const url = pollData.data?.generated?.[0]?.url;
+          if (!url) throw new Error("생성된 이미지 URL을 받지 못했습니다");
+          setFreepikResult(url);
+          setFreepikGenMsg("");
+          setFreepikGenerating(false);
+          return;
+        } else if (status === "FAILED" || status === "ERROR") {
+          throw new Error("이미지 생성에 실패했습니다");
+        }
+      }
+      throw new Error("시간 초과: 이미지 생성이 너무 오래 걸립니다");
+    } catch (err) {
+      console.error("Freepik Mystic error:", err);
+      setError(`Freepik Mystic 오류: ${err.message}`);
+      setFreepikGenMsg("");
+    }
+    setFreepikGenerating(false);
+  };
+
+  // Freepik stock search
+  const searchFreepikStock = async () => {
+    if (!freepikStockQuery.trim() || !freepikKey) return;
+    setFreepikStockSearching(true); setError(""); setFreepikStockResults([]);
+    try {
+      const res = await fetch(
+        `https://api.freepik.com/v1/resources?locale=en-US&page=1&limit=12&order=relevance&term=${encodeURIComponent(freepikStockQuery)}&filters[content_type][photo]=1`,
+        { headers: { "x-freepik-api-key": freepikKey } }
+      );
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || errData.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const items = (data.data || []).map(item => ({
+        url: item.image?.source_url || item.url || item.image?.url,
+        thumb: item.image?.thumb?.url || item.image?.source_url || item.url || item.image?.url,
+        type: "image",
+      })).filter(item => item.url);
+      setFreepikStockResults(items);
+      if (!items.length) setError("검색 결과가 없습니다");
+    } catch (err) {
+      console.error("Freepik stock error:", err);
+      setError(`Freepik 스톡 오류: ${err.message}`);
+    }
+    setFreepikStockSearching(false);
+  };
+
   const tabs = [
     { id: "unsplash", label: "Unsplash", disabled: !unsplashKey },
     { id: "pexels", label: "Pexels", disabled: !pexelsKey },
     { id: "google", label: "Google 이미지", disabled: !serperKey },
+    { id: "freepik", label: "Freepik", disabled: !freepikKey },
     { id: "dalle", label: "AI 생성", disabled: !openaiKey },
     { id: "file", label: "파일 첨부" },
   ];
@@ -1448,6 +1621,124 @@ function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, op
               <div style={{ textAlign: "center", padding: "32px 0", color: "#bbb", fontSize: 13 }}>
                 이미지 설명을 입력하고 생성 버튼을 누르세요
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Freepik tab */}
+        {tab === "freepik" && (
+          <div style={{ marginBottom: 12 }}>
+            {/* Sub-tabs */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
+              {[{ id: "ai", label: "AI 생성" }, { id: "stock", label: "스톡 검색" }].map(st => (
+                <button key={st.id} onClick={() => { setFreepikSubTab(st.id); setError(""); }}
+                  style={{
+                    flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer",
+                    fontSize: 11, fontWeight: 700, transition: "all 0.15s",
+                    background: freepikSubTab === st.id ? "#10b981" : "#f0fdf4",
+                    color: freepikSubTab === st.id ? "#fff" : "#10b981",
+                  }}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            {/* AI Generation sub-tab */}
+            {freepikSubTab === "ai" && (
+              <>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input value={freepikPrompt} onChange={e => setFreepikPrompt(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !freepikGenerating && generateFreepikMystic()}
+                    placeholder="이미지 설명 입력... (예: serene mountain landscape at sunset)"
+                    style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                  />
+                  <button className="btn-3d btn-3d-primary" onClick={generateFreepikMystic} disabled={freepikGenerating || !freepikPrompt.trim()}
+                    style={{ fontSize: "0.8rem", whiteSpace: "nowrap", opacity: (!freepikPrompt.trim() || freepikGenerating) ? 0.5 : 1 }}>
+                    {freepikGenerating ? "생성중..." : "생성"}
+                  </button>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: "#666", whiteSpace: "nowrap" }}>모델:</label>
+                  <select value={freepikModel} onChange={e => setFreepikModel(e.target.value)}
+                    style={{ flex: 1, padding: "7px 10px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: 12, outline: "none", background: "#fff", cursor: "pointer" }}>
+                    <option value="realism">Realism</option>
+                    <option value="fluid">Fluid</option>
+                    <option value="flexible">Flexible</option>
+                    <option value="zen">Zen</option>
+                    <option value="super_real">Super Real</option>
+                  </select>
+                  <span style={{ fontSize: 10, color: "#aaa" }}>3:4 / 2K</span>
+                </div>
+                {freepikGenerating && (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: "#aaa", fontSize: 13 }}>
+                    {freepikGenMsg}
+                  </div>
+                )}
+                {freepikResult && (
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      onClick={() => onSelect(freepikResult, "image")}
+                      style={{
+                        display: "inline-block", borderRadius: 12, overflow: "hidden", cursor: "pointer",
+                        border: "3px solid transparent", transition: "border-color 0.15s",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#10b981"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
+                    >
+                      <img src={freepikResult} alt="Freepik Mystic generated" style={{ width: 300, height: 400, objectFit: "cover" }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: "#888", marginTop: 8 }}>클릭하여 배경으로 적용</div>
+                  </div>
+                )}
+                {!freepikGenerating && !freepikResult && (
+                  <div style={{ textAlign: "center", padding: "32px 0", color: "#bbb", fontSize: 13 }}>
+                    이미지 설명을 입력하고 생성 버튼을 누르세요
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Stock Search sub-tab */}
+            {freepikSubTab === "stock" && (
+              <>
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <input value={freepikStockQuery} onChange={e => setFreepikStockQuery(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && !freepikStockSearching && searchFreepikStock()}
+                    placeholder="검색어 입력... (예: nature, office, food)"
+                    style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                  />
+                  <button className="btn-3d btn-3d-primary" onClick={searchFreepikStock} disabled={freepikStockSearching}
+                    style={{ fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                    {freepikStockSearching ? "..." : "검색"}
+                  </button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  {freepikStockResults.map((r, i) => (
+                    <div key={i} onClick={() => onSelect(r.url, r.type)}
+                      style={{
+                        aspectRatio: "4/5", borderRadius: 10, overflow: "hidden", cursor: "pointer",
+                        border: "2px solid transparent", transition: "border-color 0.15s", background: "#f3f4f6",
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#10b981"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
+                    >
+                      <img src={r.thumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        onError={e => { e.target.style.display = "none"; }} />
+                    </div>
+                  ))}
+                  {freepikStockResults.length === 0 && !freepikStockSearching && !error && (
+                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "32px 0", color: "#bbb", fontSize: 13 }}>
+                      키워드를 입력하고 검색하세요
+                    </div>
+                  )}
+                  {freepikStockSearching && (
+                    <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "32px 0", color: "#aaa", fontSize: 13 }}>
+                      검색 중...
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1694,6 +1985,7 @@ export default function InstaCardNews() {
   const [pexelsKey, setPexelsKey] = useState(() => localStorage.getItem("cardnews_pexels_key") || "");
   const [serperKey, setSerperKey] = useState(() => localStorage.getItem("cardnews_serper_key") || "");
   const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem("cardnews_openai_key") || "");
+  const [freepikKey, setFreepikKey] = useState(() => localStorage.getItem("cardnews_freepik_key") || "");
   const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
   const [showBananax, setShowBananax] = useState(false);
 
@@ -1733,6 +2025,11 @@ export default function InstaCardNews() {
     setOpenaiKey(key);
     if (key) localStorage.setItem("cardnews_openai_key", key);
     else localStorage.removeItem("cardnews_openai_key");
+  };
+  const handleFreepikKeyChange = (key) => {
+    setFreepikKey(key);
+    if (key) localStorage.setItem("cardnews_freepik_key", key);
+    else localStorage.removeItem("cardnews_freepik_key");
   };
 
   // Handle media selection from picker
@@ -2610,16 +2907,17 @@ ${langInstr2}
       </div>
 
       {/* Settings Modal */}
-      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} apiKey={apiKey} onApiKeyChange={handleApiKeyChange} unsplashKey={unsplashKey} onUnsplashKeyChange={handleUnsplashKeyChange} pexelsKey={pexelsKey} onPexelsKeyChange={handlePexelsKeyChange} serperKey={serperKey} onSerperKeyChange={handleSerperKeyChange} openaiKey={openaiKey} onOpenaiKeyChange={handleOpenaiKeyChange} />
+      <SettingsPanel open={showSettings} onClose={() => setShowSettings(false)} apiKey={apiKey} onApiKeyChange={handleApiKeyChange} unsplashKey={unsplashKey} onUnsplashKeyChange={handleUnsplashKeyChange} pexelsKey={pexelsKey} onPexelsKeyChange={handlePexelsKeyChange} serperKey={serperKey} onSerperKeyChange={handleSerperKeyChange} openaiKey={openaiKey} onOpenaiKeyChange={handleOpenaiKeyChange} freepikKey={freepikKey} onFreepikKeyChange={handleFreepikKeyChange} />
 
       {/* Media Picker Modal */}
-      <MediaPickerModal open={mediaPickerTarget !== null} onClose={() => setMediaPickerTarget(null)} unsplashKey={unsplashKey} pexelsKey={pexelsKey} serperKey={serperKey} openaiKey={openaiKey} onSelect={handleMediaSelect} />
+      <MediaPickerModal open={mediaPickerTarget !== null} onClose={() => setMediaPickerTarget(null)} unsplashKey={unsplashKey} pexelsKey={pexelsKey} serperKey={serperKey} openaiKey={openaiKey} freepikKey={freepikKey} onSelect={handleMediaSelect} />
 
       {/* BananaX AI Automation Modal */}
       <BananaXModal
         open={showBananax}
         onClose={() => setShowBananax(false)}
         openaiKey={openaiKey}
+        freepikKey={freepikKey}
         apiKey={apiKey}
         persona={persona}
         desire={desire}
