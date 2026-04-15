@@ -888,6 +888,327 @@ function SettingsPanel({ open, onClose, apiKey, onApiKeyChange, unsplashKey, onU
   );
 }
 
+// —— BananaX AI Automation Modal ——
+let _bananaxLiteCache = null;
+let _bananaxFullCache = null;
+const BANANAX_BASE = "https://furoku.github.io/bananaX/projects/infographic-evaluation/";
+
+async function fetchBananaxLite() {
+  if (_bananaxLiteCache) return _bananaxLiteCache;
+  const res = await fetch(BANANAX_BASE + "evaluation_lite.json");
+  _bananaxLiteCache = await res.json();
+  return _bananaxLiteCache;
+}
+async function fetchBananaxFull() {
+  if (_bananaxFullCache) return _bananaxFullCache;
+  const res = await fetch(BANANAX_BASE + "ko/evaluation_data.json");
+  _bananaxFullCache = await res.json();
+  return _bananaxFullCache;
+}
+
+function buildDallePrompt(style, fullEntry, persona, desire) {
+  const topic = [persona, desire].filter(Boolean).join(" - ") || "Card News";
+  let visualInfo = "";
+  if (fullEntry && fullEntry.yaml) {
+    const y = fullEntry.yaml;
+    const colorMatch = y.match(/Color Composition[:\s]*([^\n]+)/i);
+    const illuMatch = y.match(/Illustration Style[:\s]*([^\n]+)/i);
+    const toneMatch = y.match(/Tone\s*(?:&|and)\s*Voice[:\s]*([^\n]+)/i);
+    const parts = [];
+    if (colorMatch) parts.push("Color: " + colorMatch[1].trim());
+    if (illuMatch) parts.push("Illustration: " + illuMatch[1].trim());
+    if (toneMatch) parts.push("Tone: " + toneMatch[1].trim());
+    visualInfo = parts.join(". ") || style.name;
+  } else {
+    visualInfo = (style.name || "").split("/").join(", ");
+  }
+  return `Create an infographic-style background image for Instagram card news (portrait, 4:5 ratio).
+
+Topic: "${topic}"
+
+Visual Style: ${visualInfo}
+
+Requirements:
+- Background image only. Do NOT include any text, letters, numbers, or words.
+- Leave the top 30% and bottom 30% relatively clean for text overlay.
+- Professional quality, suitable for Instagram carousel.`;
+}
+
+function BananaXModal({ open, onClose, openaiKey, apiKey, persona, desire, category, styleId, cardCount, autoHashtag, awareness, onComplete }) {
+  const [styles, setStyles] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [scoreFilter, setScoreFilter] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(40);
+  const [selected, setSelected] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [genMsg, setGenMsg] = useState("");
+  const [dallePrompt, setDallePrompt] = useState("");
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) { setSelected(null); setSearch(""); setScoreFilter(0); setVisibleCount(40); setGenerating(false); return; }
+    setLoading(true);
+    fetchBananaxLite().then(d => { setStyles(d); setLoading(false); }).catch(() => setLoading(false));
+  }, [open]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (!open || selected) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(v => v + 40);
+    }, { rootMargin: "200px" });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [open, selected, styles, search, scoreFilter]);
+
+  // Build DALL-E prompt when a style is selected
+  useEffect(() => {
+    if (!selected) { setDallePrompt(""); return; }
+    // Try to get full entry
+    fetchBananaxFull().then(fullData => {
+      const fullEntry = fullData.find(f => f.id === selected.id || f.number === selected.number);
+      setDallePrompt(buildDallePrompt(selected, fullEntry, persona, desire));
+    }).catch(() => {
+      setDallePrompt(buildDallePrompt(selected, null, persona, desire));
+    });
+  }, [selected, persona, desire]);
+
+  if (!open) return null;
+
+  const filtered = styles.filter(s => {
+    if (scoreFilter > 0 && (s.total || 0) < scoreFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return (s.name || "").toLowerCase().includes(q) || (s.tags || []).some(t => t.toLowerCase().includes(q));
+    }
+    return true;
+  });
+  const visible = filtered.slice(0, visibleCount);
+
+  const scoreBadgeColor = (score) => {
+    if (score >= 45) return { bg: "#ecfdf5", color: "#10b981" };
+    if (score >= 40) return { bg: "#eff6ff", color: "#3b82f6" };
+    if (score >= 35) return { bg: "#fffbeb", color: "#f59e0b" };
+    return { bg: "#fef2f2", color: "#ef4444" };
+  };
+
+  const handleGenerate = async () => {
+    if (!selected || generating) return;
+    setGenerating(true);
+    setGenMsg("DALL-E로 배경 이미지를 생성하고 있습니다...");
+    try {
+      // Parallel: DALL-E image + Claude/demo card copy
+      const topicText = [persona?.trim(), desire?.trim()].filter(Boolean).join(" - ") || "카드뉴스";
+      const dallePromise = fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${openaiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "dall-e-3", prompt: dallePrompt, n: 1, size: "1024x1792", quality: "standard" }),
+      }).then(r => { if (!r.ok) throw new Error(`DALL-E HTTP ${r.status}`); return r.json(); });
+
+      let cardsPromise;
+      if (apiKey) {
+        setGenMsg("AI가 카드 카피를 작성하고 배경 이미지를 생성하고 있습니다...");
+        const catLabel = CATEGORIES.find(c => c.id === category)?.label || "뉴스/트렌드";
+        const awarenessLabel = AWARENESS_LEVELS.find(a => a.id === awareness)?.label || "문제인지";
+        const prompt = `당신은 인스타그램 카드뉴스 전문 카피라이터입니다.
+모든 카드 텍스트는 한국어로 작성하세요.
+페르소나: "${persona?.trim() || "일반 독자"}"
+욕구: "${desire?.trim() || topicText}"
+인지단계: ${awarenessLabel}
+카테고리: ${catLabel}
+카드 수: ${cardCount}장 (표지 1장 + 본문 ${cardCount - 2}장 + 마무리 1장)
+해시태그 자동생성: ${autoHashtag ? "예" : "아니오"}
+
+${cardCount}장의 카드뉴스를 작성하세요.
+아래 JSON 형식으로만 응답하세요:
+{
+  "analysis": { "title": "제목 (15자 이내)", "subtitle": "부제목 (20자 이내)", "tone": "톤", "hashtags": ["#태그1","#태그2","#태그3","#태그4","#태그5"] },
+  "cards": [
+    { "cardNumber": 1, "type": "cover", "headline": "표지 헤드라인", "subtext": "부제목" },
+    { "cardNumber": 2, "type": "content", "headline": "헤드라인", "body": "본문 (40자 이내)", "accent": "강조 키워드" },
+    { "cardNumber": ${cardCount}, "type": "closing", "cta": "CTA 문구", "hashtags": ["#태그1","#태그2","#태그3"] }
+  ]
+}
+규칙: headline 15자 이내, body 40자 이내, accent 2~4자`;
+        cardsPromise = fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+          body: JSON.stringify({ model: "claude-sonnet-4-6-20250514", max_tokens: 3000, messages: [{ role: "user", content: prompt }] }),
+        }).then(async r => {
+          if (!r.ok) throw new Error(`Claude API ${r.status}`);
+          const d = await r.json();
+          const text = d.content[0].text;
+          const m = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+          return JSON.parse(m[1].trim());
+        });
+      } else {
+        // Demo mode
+        cardsPromise = Promise.resolve(null);
+      }
+
+      const [dalleData, claudeData] = await Promise.all([dallePromise, cardsPromise]);
+      const imgUrl = dalleData.data?.[0]?.url;
+      if (!imgUrl) throw new Error("이미지 URL을 받지 못했습니다");
+
+      // Convert DALL-E URL to blob for reliable Canvas rendering
+      setGenMsg("이미지를 처리하고 있습니다...");
+      let blobUrl = imgUrl;
+      try {
+        const imgRes = await fetch(imgUrl);
+        const blob = await imgRes.blob();
+        blobUrl = URL.createObjectURL(blob);
+      } catch { blobUrl = imgUrl; }
+
+      // Build cards
+      let analysisResult, cardsResult;
+      if (claudeData) {
+        analysisResult = claudeData.analysis;
+        cardsResult = claudeData.cards;
+      } else {
+        // Demo fallback
+        const tag = topicText.replace(/\s/g, "");
+        analysisResult = { title: topicText.slice(0, 15), subtitle: `${topicText}의 핵심 정리`, tone: "정보전달", hashtags: [`#${tag}`, "#카드뉴스", "#트렌드", "#이슈", "#정보"] };
+        const points = ["핵심 변화와 트렌드 분석", "전문가들의 의견 정리", "실제 데이터로 보는 현황", "놓치면 안되는 포인트", "앞으로의 전망과 예측", "실전에 적용 방법", "꼭 알아야 할 배경지식", "비교 분석과 장단점"];
+        cardsResult = [
+          { cardNumber: 1, type: "cover", headline: analysisResult.title, subtext: analysisResult.subtitle },
+          ...points.slice(0, cardCount - 2).map((pt, i) => ({ cardNumber: i + 2, type: "content", headline: pt, body: `${topicText}에서 ${pt.toLowerCase()}이(가) 중요한 이유를 알아봅니다.`, accent: `포인트 ${i + 1}` })),
+          { cardNumber: cardCount, type: "closing", cta: "저장하고 공유하세요!", hashtags: analysisResult.hashtags.slice(0, 3) },
+        ];
+      }
+
+      const pal = COLOR_PALETTES[styleId] || COLOR_PALETTES.minimal;
+      const finalCards = cardsResult.map((c, i) => ({
+        ...c, totalCards: cardCount, bgColor: pal[i % pal.length], imageUrl: blobUrl, mediaType: "image",
+      }));
+
+      onComplete(analysisResult, finalCards);
+    } catch (err) {
+      console.error("BananaX generation error:", err);
+      setGenMsg(`오류: ${err.message}`);
+      setTimeout(() => setGenerating(false), 2000);
+      return;
+    }
+    setGenerating(false);
+  };
+
+  // Detail view
+  if (selected) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", animation: "modal-fade-in 0.2s ease-out" }}>
+        <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          <button onClick={() => setSelected(null)} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>←</button>
+          <span style={{ color: "#fff", fontWeight: 700, fontSize: 15, flex: 1 }}>스타일 상세</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 24, cursor: "pointer" }}>×</button>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+          {generating ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20, paddingTop: 60 }}>
+              <div style={{ width: 48, height: 48, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#a78bfa", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <div style={{ color: "#fff", fontSize: 14, textAlign: "center", maxWidth: 300 }}>{genMsg}</div>
+            </div>
+          ) : (
+            <>
+              <img src={BANANAX_BASE + selected.img} alt={selected.name} loading="lazy"
+                style={{ width: 240, borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ color: "#fff", fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{selected.name}</div>
+                {selected.total != null && (() => { const c = scoreBadgeColor(selected.total); return (
+                  <span style={{ fontSize: 12, padding: "3px 12px", borderRadius: 20, background: c.bg, color: c.color, fontWeight: 800 }}>{selected.total}점</span>
+                ); })()}
+              </div>
+              <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>DALL-E Prompt</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{dallePrompt || "로딩 중..."}</div>
+              </div>
+              <div style={{ width: "100%", maxWidth: 480, background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#a78bfa", marginBottom: 8 }}>HEADLINE</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.8)" }}>{[persona, desire].filter(Boolean).join(" - ") || "미입력"}</div>
+              </div>
+              {!openaiKey ? (
+                <div style={{ color: "#f59e0b", fontSize: 13, textAlign: "center", padding: "12px 20px", background: "rgba(245,158,11,0.1)", borderRadius: 10 }}>
+                  OpenAI API Key가 필요합니다. 설정에서 입력해주세요.
+                </div>
+              ) : (
+                <button onClick={handleGenerate}
+                  style={{
+                    width: "100%", maxWidth: 480, padding: "16px", borderRadius: 14, border: "none", cursor: "pointer",
+                    background: "linear-gradient(135deg, #8b5cf6, #6366f1, #4f46e5)", color: "#fff",
+                    fontSize: 15, fontWeight: 700, boxShadow: "0 4px 20px rgba(99,102,241,0.4)", transition: "transform 0.15s, box-shadow 0.15s",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(99,102,241,0.5)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(99,102,241,0.4)"; }}
+                >
+                  이 스타일로 자동 생성
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Grid view
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", animation: "modal-fade-in 0.2s ease-out" }}>
+      {/* Header */}
+      <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>AI 자동화 — 스타일 선택</span>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 28, cursor: "pointer", lineHeight: 1, fontWeight: 300 }}>×</button>
+      </div>
+      {/* Search & Filters */}
+      <div style={{ padding: "12px 20px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(40); }} placeholder="스타일 검색..."
+          style={{ flex: 1, minWidth: 140, padding: "9px 14px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+        {[{ label: "전체", val: 0 }, { label: "45+", val: 45 }, { label: "40+", val: 40 }, { label: "35+", val: 35 }].map(f => (
+          <button key={f.val} onClick={() => { setScoreFilter(f.val); setVisibleCount(40); }}
+            style={{
+              padding: "7px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, transition: "all 0.15s",
+              background: scoreFilter === f.val ? "#6366f1" : "rgba(255,255,255,0.1)", color: scoreFilter === f.val ? "#fff" : "rgba(255,255,255,0.6)",
+            }}>{f.label}</button>
+        ))}
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>{filtered.length}개</span>
+      </div>
+      {/* Grid */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 20px" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.5)", fontSize: 14 }}>스타일을 불러오는 중...</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            {visible.map(s => {
+              const sc = scoreBadgeColor(s.total || 0);
+              return (
+                <div key={s.id || s.number} onClick={() => setSelected(s)}
+                  style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, overflow: "hidden", cursor: "pointer", transition: "transform 0.15s, box-shadow 0.15s", border: "1px solid rgba(255,255,255,0.08)" }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.3)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
+                >
+                  <div style={{ aspectRatio: "4/5", background: "#111", overflow: "hidden" }}>
+                    <img src={BANANAX_BASE + s.img} alt={s.name} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={e => { e.target.style.display = "none"; }} />
+                  </div>
+                  <div style={{ padding: "8px 10px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 4 }}>{s.name}</div>
+                    {s.total != null && (
+                      <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: sc.bg, color: sc.color, fontWeight: 800 }}>{s.total}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Sentinel for infinite scroll */}
+            <div ref={sentinelRef} style={{ height: 1 }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // —— Media Picker Modal (with DALL-E tab) ——
 function MediaPickerModal({ open, onClose, unsplashKey, pexelsKey, serperKey, openaiKey, onSelect }) {
   const [tab, setTab] = useState("file");
@@ -1364,6 +1685,7 @@ export default function InstaCardNews() {
   const [serperKey, setSerperKey] = useState(() => localStorage.getItem("cardnews_serper_key") || "");
   const [openaiKey, setOpenaiKey] = useState(() => localStorage.getItem("cardnews_openai_key") || "");
   const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
+  const [showBananax, setShowBananax] = useState(false);
 
   // New states for angles & evaluation
   const [angles, setAngles] = useState([]);
@@ -2283,6 +2605,28 @@ ${langInstr2}
       {/* Media Picker Modal */}
       <MediaPickerModal open={mediaPickerTarget !== null} onClose={() => setMediaPickerTarget(null)} unsplashKey={unsplashKey} pexelsKey={pexelsKey} serperKey={serperKey} openaiKey={openaiKey} onSelect={handleMediaSelect} />
 
+      {/* BananaX AI Automation Modal */}
+      <BananaXModal
+        open={showBananax}
+        onClose={() => setShowBananax(false)}
+        openaiKey={openaiKey}
+        apiKey={apiKey}
+        persona={persona}
+        desire={desire}
+        category={category}
+        styleId={styleId}
+        cardCount={cardCount}
+        autoHashtag={autoHashtag}
+        awareness={awareness}
+        onComplete={(analysisResult, finalCards) => {
+          setShowBananax(false);
+          setAnalysis(analysisResult);
+          setCards(finalCards);
+          setEvalScore(null);
+          setStep(3);
+        }}
+      />
+
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "20px 16px" }}>
         {step > 0 && <PipelineProgress current={step === 1 ? 1 : step === 2 ? 2 : step === 3 ? 3 : 0} />}
 
@@ -2425,22 +2769,43 @@ ${langInstr2}
                 </label>
               </div>
 
-              {/* Generate Button — 3D Primary */}
-              <button
-                className={`btn-3d ${canGenerate?"btn-3d-primary":""}`}
-                onClick={generate}
-                disabled={!canGenerate}
-                style={{
-                  flex: "1 1 100%", padding: "0.65em 1.5em", fontSize: "0.95rem",
-                  cursor: canGenerate?"pointer":"not-allowed",
-                  opacity: canGenerate?1:0.5,
-                }}
-              >
-                🚀 앵글 생성하기
-                <span style={{ marginLeft: 8, fontSize: "0.7rem", padding: "2px 8px", borderRadius: 10, background: apiKey ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)", color: apiKey ? "#d1fae5" : "#fef3c7" }}>
-                  {apiKey ? "AI 모드" : "데모 모드"}
-                </span>
-              </button>
+              {/* Generate Buttons */}
+              <div style={{ display: "flex", gap: 10, flex: "1 1 100%" }}>
+                <button
+                  className={`btn-3d ${canGenerate?"btn-3d-primary":""}`}
+                  onClick={generate}
+                  disabled={!canGenerate}
+                  style={{
+                    flex: 1, padding: "0.65em 1.5em", fontSize: "0.95rem",
+                    cursor: canGenerate?"pointer":"not-allowed",
+                    opacity: canGenerate?1:0.5,
+                  }}
+                >
+                  🚀 앵글 생성하기
+                  <span style={{ marginLeft: 8, fontSize: "0.7rem", padding: "2px 8px", borderRadius: 10, background: apiKey ? "rgba(16,185,129,0.2)" : "rgba(245,158,11,0.2)", color: apiKey ? "#d1fae5" : "#fef3c7" }}>
+                    {apiKey ? "AI 모드" : "데모 모드"}
+                  </span>
+                </button>
+                <button
+                  className="btn-3d"
+                  onClick={() => { if (openaiKey) setShowBananax(true); else alert("AI 자동화를 사용하려면 설정에서 OpenAI API Key를 입력해주세요."); }}
+                  disabled={!canGenerate}
+                  style={{
+                    flex: 1, padding: "0.65em 1.5em", fontSize: "0.95rem",
+                    cursor: canGenerate ? "pointer" : "not-allowed",
+                    opacity: canGenerate ? 1 : 0.5,
+                    background: openaiKey ? "linear-gradient(135deg, #8b5cf6, #6366f1)" : "#e5e7eb",
+                    color: openaiKey ? "#fff" : "#999",
+                    textShadow: openaiKey ? "0 1px 2px rgba(0,0,0,0.2)" : "none",
+                    boxShadow: openaiKey
+                      ? "inset 0 1px 0 0 rgba(255,255,255,0.2), 0 1px 0 0 #5b21b6, 0 2px 0 0 #4c1d95, 0 4px 0 0 #3b0764, 0 5px 0 0 #2e0052, 0 6px 0 0 #240040, 0 6.5px 8px 0 rgba(139,92,246,0.35)"
+                      : undefined,
+                  }}
+                >
+                  ✨ AI 자동화
+                  {!openaiKey && <span style={{ marginLeft: 6, fontSize: "0.65rem", color: "#bbb" }}>(키 필요)</span>}
+                </button>
+              </div>
             </div>
           </div>
         )}
