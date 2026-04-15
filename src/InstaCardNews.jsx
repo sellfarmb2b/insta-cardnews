@@ -444,6 +444,7 @@ const STYLES = [
   { id: "moond", label: "매거진형", desc: "이미지+오버레이", gradient: "linear-gradient(135deg,#8B6914 0%,#2a1a0a 100%)" },
   { id: "poly", label: "볼드형", desc: "배지+대형 텍스트", gradient: "linear-gradient(180deg,#1a3a5c 0%,#0a0a1a 100%)" },
   { id: "minimal", label: "미니멀", desc: "단순+타이포", gradient: "linear-gradient(135deg,#fafafa,#e8e8e8)" },
+  { id: "zzune", label: "ZZUNE", desc: "블랙+블루 강조", gradient: "linear-gradient(180deg,#111 0%,#000 100%)" },
 ];
 
 const CARD_COUNTS = [5, 7, 10];
@@ -630,6 +631,64 @@ function CardPreview({ card, styleId, isSelected, onClick, watermark = "@cardnew
                 {card.hashtags && <div style={{ fontSize: 7, color: "rgba(255,255,255,0.4)" }}>{card.hashtags.slice(0,3).join(" ")}</div>}
               </>
             )}
+          </div>
+        </div>
+        <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
+          {card.type === "cover" ? "표지" : card.type === "closing" ? "마무리" : `${card.cardNumber}p`}
+        </div>
+      </div>
+    );
+  }
+
+  // ★ ZZUNE (black+blue) style ★
+  if (styleId === "zzune") {
+    const BLUE = "#4A8FE8";
+    return (
+      <div onClick={onClick} style={{ cursor: "pointer", flexShrink: 0, scrollSnapAlign: "start" }}>
+        <div style={{ ...base, background: "#000", justifyContent: "flex-end", padding: 0 }}>
+          <CardBgImage imageUrl={card.imageUrl} mediaType={card.mediaType} />
+          {card.type === "cover" && (
+            <div style={{ ...textStyle, position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column" }}>
+              {/* Top image area */}
+              <div style={{ flex: "0 0 55%", position: "relative", overflow: "hidden" }}>
+                {!hasImage && <div style={{ width: "100%", height: "100%", background: "linear-gradient(180deg, #1a1a2e 0%, #000 100%)" }} />}
+                {hasImage && <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #000 0%, transparent 40%)" }} />}
+              </div>
+              {/* Bottom text */}
+              <div style={{ padding: "8px 12px 20px", display: "flex", flexDirection: "column", gap: 3 }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: BLUE, lineHeight: 1.25, wordBreak: "keep-all" }}>{card.headline}</div>
+                {card.subtext && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>{card.subtext}</div>}
+              </div>
+            </div>
+          )}
+          {card.type === "content" && (
+            <div style={{ ...textStyle, position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", padding: "14px 12px 20px", gap: 6 }}>
+              {/* Number badge + title */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 18, height: 18, borderRadius: "50%", background: BLUE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 900, color: "#fff" }}>
+                  {card.cardNumber}
+                </div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: BLUE }}>{card.accent || `Section ${card.cardNumber}`}</div>
+              </div>
+              {/* Headline */}
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#fff", lineHeight: 1.3, wordBreak: "keep-all" }}>{card.headline}</div>
+              {/* Body */}
+              {card.body && (
+                <div style={{ fontSize: 7.5, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, marginTop: 2 }}>
+                  {card.body.length > 55 ? card.body.slice(0, 55) + "..." : card.body}
+                </div>
+              )}
+            </div>
+          )}
+          {card.type === "closing" && (
+            <div style={{ ...textStyle, position: "relative", zIndex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16, textAlign: "center", gap: 6 }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: BLUE, lineHeight: 1.3 }}>{card.cta || "댓글로 알려주세요"}</div>
+              {card.hashtags && <div style={{ fontSize: 7, color: "rgba(255,255,255,0.35)" }}>{card.hashtags.slice(0, 3).join("  ")}</div>}
+            </div>
+          )}
+          {/* Footer */}
+          <div style={{ position: "absolute", bottom: 4, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+            <span style={{ fontSize: 5.5, color: "rgba(255,255,255,0.2)", fontWeight: 600, letterSpacing: 1 }}>By {watermark?.replace("@", "") || "ZZUNE PD"}</span>
           </div>
         </div>
         <div style={{ textAlign: "center", marginTop: 6, fontSize: 9.5, fontWeight: 600, color: isSelected ? "#4f46e5" : "#aaa" }}>
@@ -1868,6 +1927,62 @@ ${langInstr2}
     const idx = (card.cardNumber - 1) % PHOTO_BG.length;
     const isMinimal = style === "minimal";
     const isEdge = card.type === "cover" || card.type === "closing";
+    const BLUE = "#4A8FE8";
+
+    // --- ZZUNE style (early return) ---
+    if (style === "zzune") {
+      ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+      // Background image (cover: top 55%)
+      if (card.imageUrl) {
+        try {
+          const img = await loadImage(card.imageUrl);
+          const sc = Math.max(W / img.width, H / img.height);
+          const sw = W / sc, sh = H / sc;
+          const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+          if (card.type === "cover") {
+            ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H * 0.55); ctx.clip();
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+            ctx.restore();
+            const fadeGrd = ctx.createLinearGradient(0, H * 0.35, 0, H * 0.55);
+            fadeGrd.addColorStop(0, "rgba(0,0,0,0)"); fadeGrd.addColorStop(1, "#000");
+            ctx.fillStyle = fadeGrd; ctx.fillRect(0, H * 0.35, W, H * 0.2);
+          } else {
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, W, H);
+          }
+        } catch { /* keep black bg */ }
+      }
+      // Text offset
+      const off = card.textOffset || { x: 0, y: 0 };
+      ctx.save(); ctx.translate(off.x * (W / 172), off.y * (W / 172));
+      ctx.textBaseline = "top";
+      if (card.type === "cover") {
+        ctx.font = "900 88px Pretendard, -apple-system, sans-serif"; ctx.fillStyle = BLUE;
+        wrapText(ctx, card.headline || "", 75, H * 0.58, W - 150, 110);
+        if (card.subtext) { ctx.font = "400 46px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillText(card.subtext, 75, H * 0.58 + 240); }
+      } else if (card.type === "content") {
+        // Blue circle badge
+        ctx.beginPath(); ctx.arc(105, 90, 32, 0, Math.PI * 2); ctx.fillStyle = BLUE; ctx.fill();
+        ctx.font = "900 30px Pretendard, sans-serif"; ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.fillText(String(card.cardNumber), 105, 78); ctx.textAlign = "left";
+        ctx.font = "700 42px Pretendard, sans-serif"; ctx.fillStyle = BLUE; ctx.fillText(card.accent || `Section ${card.cardNumber}`, 155, 72);
+        // Headline
+        ctx.font = "800 78px Pretendard, -apple-system, sans-serif"; ctx.fillStyle = "#fff";
+        wrapText(ctx, card.headline || "", 75, 180, W - 150, 100);
+        // Body
+        if (card.body) { ctx.font = "400 46px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.5)"; wrapText(ctx, card.body, 75, 500, W - 150, 60); }
+      } else if (card.type === "closing") {
+        ctx.textAlign = "center";
+        ctx.font = "900 82px Pretendard, -apple-system, sans-serif"; ctx.fillStyle = BLUE;
+        wrapText(ctx, card.cta || "댓글로 알려주세요", W / 2, H / 2 - 80, W - 150, 105);
+        if (card.hashtags) { ctx.font = "400 40px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillText(card.hashtags.slice(0, 3).join("  "), W / 2, H / 2 + 100); }
+        ctx.textAlign = "left";
+      }
+      ctx.restore();
+      // Footer
+      ctx.font = "600 28px Pretendard, sans-serif"; ctx.fillStyle = "rgba(255,255,255,0.15)"; ctx.textAlign = "center";
+      ctx.fillText(`By ${wm?.replace("@", "") || "ZZUNE PD"}`, W / 2, H - 50); ctx.textAlign = "left";
+      return canvas;
+    }
 
     // --- Background ---
     if (isMinimal && !isEdge) {
