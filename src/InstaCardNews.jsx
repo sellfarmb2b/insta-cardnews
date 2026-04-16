@@ -3302,18 +3302,29 @@ ${langInstr2}
                     <CardPreview card={card} styleId={styleId} isSelected={selectedCard===i} watermark={watermark}
                       onClick={()=>setViewingCard(i)}
                     />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMediaPickerTarget(i); }}
-                      style={{
-                        fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 6,
-                        border: "1px solid #e5e7eb", background: card.imageUrl ? "#eef2ff" : "#fff", color: card.imageUrl ? "#4f46e5" : "#888",
-                        cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = "#eef2ff"; e.currentTarget.style.color = "#4f46e5"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = card.imageUrl ? "#eef2ff" : "#fff"; e.currentTarget.style.color = card.imageUrl ? "#4f46e5" : "#888"; }}
-                    >
-                      {card.imageUrl ? (card.mediaType === "video" ? "🎬 변경" : "🖼 변경") : "🖼 배경 추가"}
-                    </button>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMediaPickerTarget(i); }}
+                        style={{
+                          fontSize: 10, fontWeight: 600, padding: "4px 8px", borderRadius: 6,
+                          border: "1px solid #e5e7eb", background: card.imageUrl ? "#eef2ff" : "#fff", color: card.imageUrl ? "#4f46e5" : "#888",
+                          cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+                        }}
+                      >
+                        {card.imageUrl ? "🖼" : "🖼 배경"}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); downloadPNG(i); }}
+                        disabled={downloading}
+                        style={{
+                          fontSize: 10, fontWeight: 600, padding: "4px 8px", borderRadius: 6,
+                          border: "1px solid #d1fae5", background: "#ecfdf5", color: "#059669",
+                          cursor: "pointer", transition: "all 0.15s", whiteSpace: "nowrap",
+                        }}
+                      >
+                        📥
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
